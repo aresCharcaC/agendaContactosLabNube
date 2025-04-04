@@ -1,15 +1,14 @@
 #!/bin/bash
 
-# Generar APP_KEY si no existe
+# Si APP_KEY está vacío, generarlo
 if [ -z "$APP_KEY" ]; then
     echo "Generando APP_KEY..."
-    php artisan key:generate
+    APP_KEY=$(php artisan key:generate --show)
+    export APP_KEY
 fi
 
-# Ejecutar migraciones automáticamente
-echo "Ejecutando migraciones..."
+# Ejecutar migraciones
 php artisan migrate --force
 
 # Iniciar Apache
-echo "Iniciando Apache..."
 apache2-foreground
