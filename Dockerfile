@@ -24,14 +24,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Configurar directorio de trabajo
 WORKDIR /var/www/html
 
-# Copiar composer.json y composer.lock primero
-COPY composer.json composer.lock ./
-
-# Instalar dependencias del proyecto
-RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
-
-# Copiar el resto del código
+# IMPORTANTE: Primero copiamos todo el código
 COPY . .
+
+# Ahora instalamos las dependencias (después de copiar todo el código)
+RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
 
 # Copiar configuración Nginx
 COPY docker/nginx.conf /etc/nginx/sites-available/default
