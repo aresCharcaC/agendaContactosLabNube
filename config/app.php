@@ -31,6 +31,9 @@ return [
     'providers' => [
     // Otros proveedores...
         App\Providers\DatabaseUrlServiceProvider::class,
+        Illuminate\Filesystem\FilesystemServiceProvider::class,
+
+
     ],
 
     /*

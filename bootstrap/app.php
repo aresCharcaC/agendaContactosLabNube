@@ -16,3 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
+    $app->singleton('files', function ($app) {
+        return new Illuminate\Filesystem\Filesystem;
+    });
