@@ -34,18 +34,15 @@ RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoload
 COPY docker/nginx.conf /etc/nginx/sites-available/default
 RUN mkdir -p /var/log/nginx
 
-# Configurar PHP-FPM para escribir a stderr
-RUN echo "php_admin_flag[log_errors] = on" >> /usr/local/etc/php-fpm.d/www.conf && \
-    echo "php_admin_flag[display_errors] = off" >> /usr/local/etc/php-fpm.d/www.conf && \
-    echo "php_admin_value[error_log] = /dev/stderr" >> /usr/local/etc/php-fpm.d/www.conf
-
 # Copiar script de inicio
 COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh
 
-# Configurar permisos
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Crear directorio de logs y establecer permisos
+RUN mkdir -p /var/www/html/storage/logs
+RUN touch /var/www/html/storage/logs/laravel.log
+RUN chmod -R 777 /var/www/html/storage
+RUN chmod -R 777 /var/www/html/bootstrap/cache
 
 # Crear archivos .env si no existe
 RUN if [ ! -f ".env" ]; then \
