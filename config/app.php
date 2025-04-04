@@ -30,7 +30,7 @@ return [
 
     'providers' => [
     // Otros proveedores...
-        App\Providers\PostgresUrlServiceProvider::class,
+        App\Providers\DatabaseUrlServiceProvider::class,
     ],
 
     /*

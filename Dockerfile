@@ -1,70 +1,57 @@
-FROM php:8.2-apache
+FROM php:8.2-fpm
 
 # Instalar dependencias
 RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    zip \
-    unzip \
     git \
     curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
     libpq-dev \
-    nodejs \
-    npm
+    zip \
+    unzip \
+    nginx
 
-# Instalar extensiones de PHP
-RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql
+# Limpiar cache
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Habilitar mod_rewrite para Apache
-RUN a2enmod rewrite
+# Instalar extensiones PHP (incluir soporte PostgreSQL)
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd
 
-# Establecer directorio de trabajo
+# Obtener Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Configurar directorio de trabajo
 WORKDIR /var/www/html
 
-# Copiar composer.json y composer.lock primero para aprovechar la caché de Docker
+# Copiar composer.json y composer.lock primero
 COPY composer.json composer.lock ./
 
-# Instalar Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Instalar dependencias del proyecto
+RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
 
-# Copiar todo el código
+# Copiar el resto del código
 COPY . .
 
-# Copiar .env.example a .env
-RUN cp .env.example .env
+# Copiar configuración Nginx
+COPY docker/nginx.conf /etc/nginx/sites-available/default
 
-# Generar clave de aplicación
-RUN php artisan key:generate
-
-# Instalar dependencias de PHP
-RUN composer install --no-interaction --optimize-autoloader
-
-# Instalar dependencias de Node.js y compilar assets
-RUN npm install && npm run build
+# Copiar script de inicio
+COPY docker/start.sh /start.sh
+RUN chmod +x /start.sh
 
 # Configurar permisos
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Crear script de inicio
-RUN echo '#!/bin/bash\n\
-# Actualizar la configuración con variables de entorno\n\
-php artisan config:cache\n\
-\n\
-# Ejecutar migraciones\n\
-php artisan migrate --force\n\
-\n\
-# Iniciar Apache\n\
-apache2-foreground' > /var/www/html/start.sh
-
-RUN chmod +x /var/www/html/start.sh
-
-# Configurar DocumentRoot de Apache para Laravel
-RUN sed -i -e "s/DocumentRoot \/var\/www\/html/DocumentRoot \/var\/www\/html\/public/g" /etc/apache2/sites-available/000-default.conf
+# Crear archivos .env si no existe
+RUN if [ ! -f ".env" ]; then \
+    cp .env.example .env || echo "No .env.example file found"; \
+    sed -i 's/APP_KEY=.*/APP_KEY=base64:PLACEHOLDER/' .env; \
+fi
 
 # Exponer puerto
-EXPOSE 80
+EXPOSE 10000
 
 # Ejecutar script de inicio
-CMD ["/var/www/html/start.sh"]
+CMD ["/start.sh"]
