@@ -33,11 +33,14 @@ RUN composer install --no-interaction --no-dev --optimize-autoloader
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
+# Hacer ejecutable el script de inicio
+RUN chmod +x /var/www/html/start.sh
+
 # Configurar DocumentRoot de Apache para Laravel
 RUN sed -i -e "s/DocumentRoot \/var\/www\/html/DocumentRoot \/var\/www\/html\/public/g" /etc/apache2/sites-available/000-default.conf
 
 # Exponer puerto
 EXPOSE 80
 
-# Comando para iniciar Apache
-CMD ["apache2-foreground"]
+# Usar nuestro script de inicio personalizado
+CMD ["/var/www/html/start.sh"]

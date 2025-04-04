@@ -28,6 +28,11 @@ return [
 
     'env' => env('APP_ENV', 'production'),
 
+    'providers' => [
+    // Otros proveedores...
+        App\Providers\PostgresUrlServiceProvider::class,
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Application Debug Mode
