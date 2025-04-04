@@ -20,30 +20,23 @@ RUN a2enmod rewrite
 # Establecer directorio de trabajo
 WORKDIR /var/www/html
 
-# Crear usuario sin privilegios
-RUN useradd -m appuser
-
-# Copiar solo los archivos necesarios para composer install
-COPY composer.json composer.lock ./
-
-# Cambiar propietario de la app a 'appuser' (esto es útil para los permisos al copiar archivos)
-RUN chown -R appuser:appuser /var/www/html
-
-# Cambiar a usuario 'appuser' para ejecutar composer install
-USER appuser
-
-# Ejecutar composer install en modo no interactivo
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && composer install --no-scripts --no-autoloader --no-interaction
-
-# Ahora copiar el resto de la aplicación
+# Copiar todo el proyecto
 COPY . .
 
-# Generar el autoloader
-RUN composer dump-autoload --optimize --no-interaction
+# Instalar Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Volver a root para configurar permisos y Apache
-USER root
+# Crear un archivo de autoload personalizado antes de ejecutar composer
+RUN echo "<?php\n\nfunction files() {\n    return [];\n}\n" > /var/www/html/bootstrap/helpers.php
+
+# Modificar composer.json para incluir nuestro helper temporal
+RUN sed -i 's/"autoload": {/"autoload": {\n        "files": ["bootstrap\/helpers.php"],/g' composer.json
+
+# Instalar dependencias sin desarrollo
+RUN composer install --no-interaction --no-dev --no-scripts
+
+# Generar autoloader
+RUN composer dump-autoload --optimize
 
 # Configurar permisos
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
