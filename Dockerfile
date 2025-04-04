@@ -30,8 +30,14 @@ COPY . .
 # Instalar dependencias sin ejecutar scripts post-instalación
 RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader --no-scripts
 
-# Copiar configuración Nginx
+# Copiar configuración Nginx y asegurar que los directorios de log existen
 COPY docker/nginx.conf /etc/nginx/sites-available/default
+RUN mkdir -p /var/log/nginx
+
+# Configurar PHP-FPM para escribir a stderr
+RUN echo "php_admin_flag[log_errors] = on" >> /usr/local/etc/php-fpm.d/www.conf && \
+    echo "php_admin_flag[display_errors] = off" >> /usr/local/etc/php-fpm.d/www.conf && \
+    echo "php_admin_value[error_log] = /dev/stderr" >> /usr/local/etc/php-fpm.d/www.conf
 
 # Copiar script de inicio
 COPY docker/start.sh /start.sh
