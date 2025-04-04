@@ -20,18 +20,38 @@ RUN a2enmod rewrite
 # Establecer directorio de trabajo
 WORKDIR /var/www/html
 
-# Copiar código fuente de la aplicación
-COPY . /var/www/html/
+# Copiar solo los archivos necesarios para composer install
+COPY composer.json composer.lock ./
 
-# Instalar Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Ejecutar composer install en modo no interactivo
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && composer install --no-scripts --no-autoloader --no-interaction
 
-# Instalar dependencias de PHP
-RUN composer install --no-interaction --no-dev --optimize-autoloader
+# Ahora copiar el resto de la aplicación
+COPY . .
+
+# Generar el autoloader
+RUN composer dump-autoload --optimize --no-interaction
 
 # Configurar permisos
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Crear script de inicio
+RUN echo '#!/bin/bash\n\
+# Generar APP_KEY si no existe\n\
+if [ -z "$APP_KEY" ]; then\n\
+    echo "Generando APP_KEY..."\n\
+    php artisan key:generate\n\
+fi\n\
+\n\
+# Ejecutar migraciones automáticamente\n\
+echo "Ejecutando migraciones..."\n\
+php artisan migrate --force\n\
+\n\
+# Iniciar Apache\n\
+echo "Iniciando Apache..."\n\
+apache2-foreground' > /var/www/html/start.sh
 
 # Hacer ejecutable el script de inicio
 RUN chmod +x /var/www/html/start.sh
