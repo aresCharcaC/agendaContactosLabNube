@@ -24,11 +24,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Configurar directorio de trabajo
 WORKDIR /var/www/html
 
-# IMPORTANTE: Primero copiamos todo el código
+# Copiar todo el código
 COPY . .
 
-# Ahora instalamos las dependencias (después de copiar todo el código)
-RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader
+# Instalar dependencias sin ejecutar scripts post-instalación
+RUN composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader --no-scripts
 
 # Copiar configuración Nginx
 COPY docker/nginx.conf /etc/nginx/sites-available/default
